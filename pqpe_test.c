@@ -22,7 +22,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Minimal mirrors of liboqs 0.16.0 struct layouts (field order matters). */
+/* Minimal mirrors of liboqs 0.16.0 struct layouts (field order matters).
+ *
+ * CORRECTIO (2026-11-17, the AARRQQONVM expansion audit): the mirrors
+ * as first struck omitted two fields the shipped 0.16.0 headers carry
+ * — OQS_KEM.encaps_derand (between keypair and encaps) and
+ * OQS_SIG.sign_with_ctx_str (between sign and verify). Every pointer
+ * after the gap therefore addressed the wrong function: the test's
+ * "encaps" called encaps_derand and its "decaps" called encaps, and
+ * the round trip failed with "KEM shared secrets differ" while the
+ * library itself, driven through the real headers, passed every
+ * operation. The missing fields are seated below; the defect and its
+ * diagnosis stand in the expansion's audit report (the TABVLA), not
+ * silently absorbed. */
 typedef int OQS_STATUS;
 #define OQS_SUCCESS 0
 
@@ -39,6 +51,8 @@ typedef struct {
 	size_t length_encaps_seed;
 	OQS_STATUS (*keypair_derand)(uint8_t *, uint8_t *, const uint8_t *);
 	OQS_STATUS (*keypair)(uint8_t *public_key, uint8_t *secret_key);
+	OQS_STATUS (*encaps_derand)(uint8_t *ciphertext, uint8_t *shared_secret,
+	                     const uint8_t *public_key, const uint8_t *seed);
 	OQS_STATUS (*encaps)(uint8_t *ciphertext, uint8_t *shared_secret,
 	                     const uint8_t *public_key);
 	OQS_STATUS (*decaps)(uint8_t *shared_secret, const uint8_t *ciphertext,
@@ -58,6 +72,10 @@ typedef struct {
 	OQS_STATUS (*keypair)(uint8_t *public_key, uint8_t *secret_key);
 	OQS_STATUS (*sign)(uint8_t *signature, size_t *signature_len,
 	                   const uint8_t *message, size_t message_len,
+	                   const uint8_t *secret_key);
+	OQS_STATUS (*sign_with_ctx_str)(uint8_t *signature, size_t *signature_len,
+	                   const uint8_t *message, size_t message_len,
+	                   const uint8_t *ctx_str, size_t ctx_str_len,
 	                   const uint8_t *secret_key);
 	OQS_STATUS (*verify)(const uint8_t *message, size_t message_len,
 	                     const uint8_t *signature, size_t signature_len,
